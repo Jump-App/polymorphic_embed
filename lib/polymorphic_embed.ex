@@ -222,16 +222,7 @@ defmodule PolymorphicEmbed do
           module ->
             embed_changeset = changeset_fun.(struct(module), params)
             embed_changeset = %{embed_changeset | action: :insert}
-
-            case embed_changeset do
-              %{valid?: true} = embed_changeset ->
-                embed_changeset
-                |> Ecto.Changeset.apply_changes()
-                |> autogenerate_id(embed_changeset.action)
-
-              %{valid?: false} = embed_changeset ->
-                embed_changeset
-            end
+            embed_changeset
         end
       end)
 
