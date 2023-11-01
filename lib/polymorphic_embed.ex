@@ -200,9 +200,7 @@ defmodule PolymorphicEmbed do
               Ecto.Changeset.put_change(changeset, field, embed_schema)
   
             %{valid?: false} = embed_changeset ->
-              changeset
-              |> Ecto.Changeset.put_change(field, embed_changeset)
-              |> Map.put(:valid?, false)
+              Ecto.Changeset.put_change(changeset, field, embed_changeset)
           end
         end
     end
