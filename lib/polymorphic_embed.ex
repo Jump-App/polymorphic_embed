@@ -122,7 +122,8 @@ defmodule PolymorphicEmbed do
               field,
               changeset_fun,
               params_for_field,
-              field_options
+              field_options,
+              cast_options
             )
 
           not array? and is_map(params_for_field) ->
@@ -131,7 +132,8 @@ defmodule PolymorphicEmbed do
               field,
               changeset_fun,
               params_for_field,
-              field_options
+              field_options,
+              cast_options
             )
         end
     end
@@ -141,7 +143,7 @@ defmodule PolymorphicEmbed do
     raise "cast_polymorphic_embed/3 only accepts a changeset as first argument"
   end
 
-  defp cast_polymorphic_embeds_one(changeset, field, changeset_fun, params, field_options) do
+  defp cast_polymorphic_embeds_one(changeset, field, changeset_fun, params, field_options, cast_options) do
     %{
       types_metadata: types_metadata,
       on_type_not_found: on_type_not_found,
@@ -186,21 +188,27 @@ defmodule PolymorphicEmbed do
         embed_changeset = changeset_fun.(struct, params)
         embed_changeset = %{embed_changeset | action: action}
 
-        case embed_changeset do
-          %{valid?: true} = embed_changeset ->
-            #embed_schema = Ecto.Changeset.apply_changes(embed_changeset)
-            #embed_schema = autogenerate_id(embed_schema, embed_changeset.action)
-            Ecto.Changeset.put_change(changeset, field, embed_changeset)
-
-          %{valid?: false} = embed_changeset ->
-            changeset
-            |> Ecto.Changeset.put_change(field, embed_changeset)
-            |> Map.put(:valid?, false)
+        if Keyword.get(cast_options, :skip_apply, nil) do
+          changeset
+          |> Ecto.Changeset.put_change(field, embed_changeset)
+          |> Map.put(:valid?, false)
+        else
+          case embed_changeset do
+            %{valid?: true} = embed_changeset ->
+              embed_schema = Ecto.Changeset.apply_changes(embed_changeset)
+              embed_schema = autogenerate_id(embed_schema, embed_changeset.action)
+              Ecto.Changeset.put_change(changeset, field, embed_schema)
+  
+            %{valid?: false} = embed_changeset ->
+              changeset
+              |> Ecto.Changeset.put_change(field, embed_changeset)
+              |> Map.put(:valid?, false)
+          end
         end
     end
   end
 
-  defp cast_polymorphic_embeds_many(changeset, field, changeset_fun, list_params, field_options) do
+  defp cast_polymorphic_embeds_many(changeset, field, changeset_fun, list_params, field_options, cast_options) do
     %{
       types_metadata: types_metadata,
       on_type_not_found: on_type_not_found,
@@ -222,7 +230,20 @@ defmodule PolymorphicEmbed do
           module ->
             embed_changeset = changeset_fun.(struct(module), params)
             embed_changeset = %{embed_changeset | action: :insert}
-            embed_changeset
+
+            if Keyword.get(cast_options, :skip_apply, nil) do
+              embed_changeset
+            else
+              case embed_changeset do
+                %{valid?: true} = embed_changeset ->
+                  embed_changeset
+                  |> Ecto.Changeset.apply_changes()
+                  |> autogenerate_id(embed_changeset.action)
+  
+                %{valid?: false} = embed_changeset ->
+                  embed_changeset
+              end
+            end
         end
       end)
 
