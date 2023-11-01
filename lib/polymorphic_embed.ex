@@ -188,9 +188,9 @@ defmodule PolymorphicEmbed do
 
         case embed_changeset do
           %{valid?: true} = embed_changeset ->
-            embed_schema = Ecto.Changeset.apply_changes(embed_changeset)
-            embed_schema = autogenerate_id(embed_schema, embed_changeset.action)
-            Ecto.Changeset.put_change(changeset, field, embed_schema)
+            #embed_schema = Ecto.Changeset.apply_changes(embed_changeset)
+            #embed_schema = autogenerate_id(embed_schema, embed_changeset.action)
+            Ecto.Changeset.put_change(changeset, field, embed_changeset)
 
           %{valid?: false} = embed_changeset ->
             changeset
