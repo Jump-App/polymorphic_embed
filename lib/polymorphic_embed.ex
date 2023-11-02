@@ -191,16 +191,18 @@ defmodule PolymorphicEmbed do
         if Keyword.get(cast_options, :skip_apply, nil) do
           changeset
           |> Ecto.Changeset.put_change(field, embed_changeset)
-          |> Map.put(:valid?, false)
+          |> Map.put(:valid?, embed_changeset.valid?)
         else
           case embed_changeset do
             %{valid?: true} = embed_changeset ->
               embed_schema = Ecto.Changeset.apply_changes(embed_changeset)
               embed_schema = autogenerate_id(embed_schema, embed_changeset.action)
               Ecto.Changeset.put_change(changeset, field, embed_schema)
-  
+
             %{valid?: false} = embed_changeset ->
-              Ecto.Changeset.put_change(changeset, field, embed_changeset)
+              changeset
+              |> Ecto.Changeset.put_change(field, embed_changeset)
+              |> Map.put(:valid?, false)
           end
         end
     end
@@ -237,7 +239,7 @@ defmodule PolymorphicEmbed do
                   embed_changeset
                   |> Ecto.Changeset.apply_changes()
                   |> autogenerate_id(embed_changeset.action)
-  
+
                 %{valid?: false} = embed_changeset ->
                   embed_changeset
               end
