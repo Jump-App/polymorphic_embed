@@ -172,7 +172,14 @@ defmodule PolymorphicEmbed do
     struct.__struct__.changeset(struct, params)
   end
 
-  defp cast_polymorphic_embeds_one(changeset, field, changeset_fun, params, field_options, cast_options) do
+  defp cast_polymorphic_embeds_one(
+         changeset,
+         field,
+         changeset_fun,
+         params,
+         field_options,
+         cast_options
+       ) do
     %{
       types_metadata: types_metadata,
       on_type_not_found: on_type_not_found,
@@ -218,7 +225,35 @@ defmodule PolymorphicEmbed do
     end
   end
 
-  defp cast_polymorphic_embeds_many(changeset, field, changeset_fun, list_params, field_options, cast_options) do
+  defp action_and_struct(params, type_field, types_metadata, data_for_field) do
+    case do_get_polymorphic_module_from_map(params, type_field, types_metadata) do
+      nil ->
+        if data_for_field do
+          {:update, data_for_field}
+        else
+          :type_not_found
+        end
+
+      module when is_nil(data_for_field) ->
+        {:insert, struct(module)}
+
+      module ->
+        if data_for_field.__struct__ != module do
+          {:insert, struct(module)}
+        else
+          {:update, data_for_field}
+        end
+    end
+  end
+
+  defp cast_polymorphic_embeds_many(
+         changeset,
+         field,
+         changeset_fun,
+         list_params,
+         field_options,
+         cast_options
+       ) do
     %{
       types_metadata: types_metadata,
       on_type_not_found: on_type_not_found,
@@ -277,14 +312,6 @@ defmodule PolymorphicEmbed do
       end
     end
   end
-
-  defp maybe_apply_changes(%{valid?: true} = embed_changeset) do
-    embed_changeset
-    |> Ecto.Changeset.apply_changes()
-    |> autogenerate_id(embed_changeset.action)
-  end
-
-  defp maybe_apply_changes(%Changeset{valid?: false} = changeset), do: changeset
 
   @impl true
   def cast(_data, _params),
