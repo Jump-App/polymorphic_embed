@@ -279,15 +279,7 @@ defmodule PolymorphicEmbed do
             if Keyword.get(cast_options, :skip_apply, nil) do
               embed_changeset
             else
-              case embed_changeset do
-                %{valid?: true} = embed_changeset ->
-                  embed_changeset
-                  |> Ecto.Changeset.apply_changes()
-                  |> autogenerate_id(embed_changeset.action)
-
-                %{valid?: false} = embed_changeset ->
-                  embed_changeset
-              end
+              maybe_apply_changes(embed_changeset)
             end
         end
       end)
@@ -312,6 +304,14 @@ defmodule PolymorphicEmbed do
       end
     end
   end
+
+  defp maybe_apply_changes(%{valid?: true} = embed_changeset) do
+    embed_changeset
+    |> Ecto.Changeset.apply_changes()
+    |> autogenerate_id(embed_changeset.action)
+  end
+
+  defp maybe_apply_changes(%Changeset{valid?: false} = changeset), do: changeset
 
   @impl true
   def cast(_data, _params),
